@@ -1,34 +1,9 @@
 #!/usr/bin/ucode
 'use strict';
 
-// ============================================================================
-// Proton2025 expanded monitoring daemon
-// Version 11: L7-статус сохраняется при L1-остановке.
-//
-// Изменения от v10:
-//   - poll_one: НЕ сбрасываем L7 при L1-остановке. prevL7 сохраняется.
-//   - handleTransition:
-//       1→0 и 3→0 : analyzeStopReason (clean-exit/crash/user-stop/silent-death)
-//       0→1       : restart (L7='ok')
-//       0→3       : restart + "health-failed carried over" (L7='fail')
-//       1→3, 3→1  : пропускаем (обработано в runL7ForService)
-//   - composeStatus при 0→1 использует prevL7: если prevL7='fail',
-//     composite=3 (health-failed), не 1.
-//   - Точка после 0→1 с prevL7='fail' пишется как [ts, 3, pid, 0].
-//   - Через 30 сек runL7Cycle → runCheck:
-//       ok  → health-recovery, composite 3→1;
-//       fail→ status='fail' уже был, новая health-fail не эмитится.
-//
-// Замечание: L7-'fail' сохраняется до явного health-recovery. Это
-// соответствует ТЗ §6.4 и логике services-widget.js: рестарт процесса
-// не гарантирует, что проблема устранена.
-// ============================================================================
-
 import { readfile, writefile, lsdir, stat, mkdir, unlink, popen } from 'fs';
 import { cursor } from 'uci';
 import * as uloop from 'uloop';
-
-// --- Константы --------------------------------------------------------------
 
 const TAG = 'proton2025-daemon';
 const STORAGE_DIR = '/tmp/proton-services-history';
@@ -69,8 +44,6 @@ const CLEAN_EXIT_MARKERS = [
 ];
 const RESTART_MARKERS = ['restarting', 'restarted'];
 
-// --- Глобальное состояние ---------------------------------------------------
-
 let state = {
     services: {},         // name -> { points, prevPid, prevL1, prevL7 }
     userActions: {},
@@ -93,16 +66,12 @@ let graceful_shutdown = false;
 let poll_interval_handle = null;
 let flush_interval_handle = null;
 
-// --- Логирование ------------------------------------------------------------
-
 function log_info(msg) {
     system("logger -t " + TAG + " '" + replace(msg, /'/g, "'\\''") + "' 2>/dev/null");
 }
 function log_err(msg) {
     system("logger -t " + TAG + " -p daemon.err '" + replace(msg, /'/g, "'\\''") + "' 2>/dev/null");
 }
-
-// --- Хелперы ФС -------------------------------------------------------------
 
 function ensureStorageDir() {
     let s = stat(STORAGE_DIR);
@@ -853,7 +822,7 @@ function poll() {
     writeHeartbeat();
 }
 
-// --- Сигналы ---------------------------------------------------------------
+// --- Signals ---------------------------------------------------------------
 
 function onSignal() {
     if (graceful_shutdown) return;

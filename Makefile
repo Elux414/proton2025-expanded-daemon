@@ -22,7 +22,6 @@ define Package/proton2025-expanded-daemon/description
  and writes events to /tmp/proton-services-history/.
 endef
 
-# Ключевая строка: говорим системе, что компиляции нет
 define Build/Compile
 endef
 
