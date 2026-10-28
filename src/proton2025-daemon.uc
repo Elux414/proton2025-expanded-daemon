@@ -783,9 +783,6 @@ function poll_one(name, now) {
     let hint = 0;
     if (prevComposite != null && prevComposite != newComposite) {
         hint = handleTransition(name, svc, prevComposite, newComposite, prevL1, l1Status);
-    } else if (l1Status == 1 && svc.prevPid > 0 && pid > 0 && pid != svc.prevPid) {
-        hint = 1;
-        appendEvent(name, 'restart', 1, 'restart detected via PID change');
     }
 
     if (l1Status == 1 && pid > 0) svc.prevPid = pid;
