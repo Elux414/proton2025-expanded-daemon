@@ -221,6 +221,22 @@ function getPidForService(name) {
 
 function checkServiceL1(name) {
     if (!validServiceName(name)) return { status: 2, pid: 0 };
+	
+	// === SPECIAL: wireguard ===
+    if (name == "wireguard") {
+        let l7cfg = state.l7.services["wireguard"];
+        let iface = l7cfg && l7cfg.fields && l7cfg.fields.iface;
+        if (!iface) return { status: 2, pid: 0 }; // unknown — нет конфига
+        let h = popen('/usr/bin/wg show ' + iface + ' 2>/dev/null', 'r');
+        if (h) {
+            h.read('all');
+            let code = h.close();
+            if (code == 0) return { status: 1, pid: 0 };
+            return { status: 0, pid: 0 };
+        }
+        return { status: 2, pid: 0 };
+    }
+	
     let path = '/etc/init.d/' + name;
     let preferred = _initActionCache[name];
     if (preferred == 'running' || preferred == 'status') {
