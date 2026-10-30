@@ -222,7 +222,6 @@ function getPidForService(name) {
 function checkServiceL1(name) {
     if (!validServiceName(name)) return { status: 2, pid: 0 };
 	
-	// === SPECIAL: wireguard ===
     if (name == "wireguard") {
         let l7cfg = state.l7.services["wireguard"];
         let iface = l7cfg && l7cfg.fields && l7cfg.fields.iface;
